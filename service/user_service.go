@@ -1,7 +1,7 @@
 package service
 
-import "github.com/muhammadfarrasfajri/koperasi-gerai-be/repository"
+import "github.com/muhammadfarrasfajri/koperasi-gerai-be/model"
 
-type UserService struct {
-	UserRepo repository.UserRepository
+type UserService interface {
+	GetUserDashboardDashboard(userID int) (*model.UserDashboardResponse, error)
 }

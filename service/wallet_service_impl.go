@@ -1,6 +1,8 @@
 package service
 
-import "github.com/muhammadfarrasfajri/koperasi-gerai-be/repository"
+import (
+	"github.com/muhammadfarrasfajri/koperasi-gerai-be/repository"
+)
 
 type WalletServiceImpl struct {
 	WalletRepo repository.WalletRepository

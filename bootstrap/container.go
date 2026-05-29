@@ -13,6 +13,7 @@ import (
 
 type Container struct {
 	AuthController    *controller.AuthController
+	UserController    *controller.UserController
 	RefreshController *controller.RefreshTokenController
 	WalletController  *controller.WalletController
 	JWTManager        *middleware.JWTManager
@@ -31,16 +32,19 @@ func InitContainer(userAuth *auth.Client) *Container {
 
 	// Initialize services
 	authService := service.NewAuthService(authRepo, userRepo, refreshRepo, jwtManager, userAuth)
+	userService := service.NewUserService(userRepo)
 	refreshService := service.NewRefreshTokenService(refreshRepo, userRepo, jwtManager)
 	walletService := service.NewWalletService(walletRepo)
 
 	// Initialize controllers
 	authController := controller.NewAuthController(authService)
+	userController := controller.NewUserController(userService)
 	refreshController := controller.NewRefreshTokenController(refreshService)
 	walletController := controller.NewWalletController(walletService)
 
 	return &Container{
 		AuthController:    authController,
+		UserController:    userController,
 		RefreshController: refreshController,
 		WalletController:  walletController,
 		JWTManager:        jwtManager,

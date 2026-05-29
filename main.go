@@ -54,6 +54,7 @@ func main() {
 	route.SetupRouter(
 		r,
 		container.AuthController,
+		container.UserController,
 		container.RefreshController,
 		container.WalletController,
 		container.JWTManager,

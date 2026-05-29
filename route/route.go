@@ -9,7 +9,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func SetupRouter(r *gin.Engine, authController *controller.AuthController, refreshController *controller.RefreshTokenController, walletController *controller.WalletController, jwtManager *middleware.JWTManager) {
+func SetupRouter(r *gin.Engine, authController *controller.AuthController, userController *controller.UserController, refreshController *controller.RefreshTokenController, walletController *controller.WalletController, jwtManager *middleware.JWTManager) {
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -19,6 +19,11 @@ func SetupRouter(r *gin.Engine, authController *controller.AuthController, refre
 		auth.POST("/login", authController.Login)
 		auth.POST("/refresh", refreshController.RefreshToken)
 		auth.POST("logout", jwtManager.AuthMiddleware(), authController.Logout)
+	}
+
+	user := r.Group("/api/user/v1")
+	{
+		user.GET("/dashboard", jwtManager.AuthMiddleware(), userController.GetUserDashboardDashboard)
 	}
 
 	wallet := r.Group("/api/wallet/v1")

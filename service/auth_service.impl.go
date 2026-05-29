@@ -62,7 +62,7 @@ func (s *AuthServiceImpl) Register(req model.RegisterMemberRequest) error {
 	if !numericRegex.MatchString(cleanNIK) {
 		return errors.New("NIK must contain only digits")
 	}
-	if *req.ReferralNumber == "" {
+	if req.ReferralNumber == "" {
 		return errors.New("referral must be filled in")
 	}
 

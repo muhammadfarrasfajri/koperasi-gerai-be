@@ -60,20 +60,48 @@ type RefreshTokenRequest struct {
 }
 
 type RegisterMemberRequest struct {
-	TokenId           string  `form:"token_id" binding:"required"`
-	FullName          string  `form:"full_name" binding:"required"`
-	PhoneNumber       string  `form:"phone_number" binding:"required"`
-	NIK               string  `form:"nik" binding:"required"`
-	MemberType        string  `form:"member_type" binding:"required"` // perorangan / usaha
-	Address           string  `form:"address" binding:"required"`
-	BankName          string  `form:"bank_name" binding:"required"`
-	BankAccountNumber string  `form:"bank_account_number" binding:"required"`
-	ReferralNumber    *string `form:"referral_number"`
-	PhotoKTPURL       string  `form:"-"`
-	PhotoSelfieURL    string  `form:"-"`
-	PaymentProofURL   string  `form:"-"`
+	TokenId           string `form:"token_id" binding:"required"`
+	FullName          string `form:"full_name" binding:"required"`
+	PhoneNumber       string `form:"phone_number" binding:"required"`
+	NIK               string `form:"nik" binding:"required"`
+	MemberType        string `form:"member_type" binding:"required"` // perorangan / usaha
+	Address           string `form:"address" binding:"required"`
+	BankName          string `form:"bank_name" binding:"required"`
+	BankAccountNumber string `form:"bank_account_number" binding:"required"`
+	ReferralNumber    string `form:"referral_number"`
+	PhotoKTPURL       string `form:"-"`
+	PhotoSelfieURL    string `form:"-"`
+	PaymentProofURL   string `form:"-"`
 }
 
 type LoginMemberRequest struct {
 	TokenId string `form:"token_id" binding:"required"`
+}
+
+// Struct untuk list daftar orang yang diajak
+type ReferredUser struct {
+	ID           int64  `json:"id"`
+	FullName     string `json:"full_name"`
+	PhoneNumber  string `json:"phone_number"`
+	RegisteredAt string `json:"registered_at"`
+}
+
+type WithdrawalHistory struct {
+	ID        int64   `json:"id"`
+	Amount    float64 `json:"amount"`
+	Status    string  `json:"status"` // 'pending', 'success', 'failed'
+	CreatedAt string  `json:"created_at"`
+}
+
+// Struct untuk response profil utama
+type UserDashboardResponse struct {
+	ID                    int64               `json:"id"`
+	Email                 string              `json:"email"`
+	FullName              string              `json:"full_name"`
+	PhoneNumber           string              `json:"phone_number"`
+	CurrentBalance        float64             `json:"current_balance"`      // Saldo di dompet sekarang
+	TotalEarnedReward     float64             `json:"total_earned_reward"`  // Total uang yang pernah dihasilkan (History)
+	TotalReferredUsers    int                 `json:"total_referred_users"` // Jumlah orang
+	ReferredUsersList     []ReferredUser      `json:"referred_users_list"`  // Array list nama-nama orangnya
+	WithdrawalHistoryList []WithdrawalHistory `json:"withdrawal_history_list"`
 }
