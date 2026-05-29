@@ -76,7 +76,7 @@ func (c *UserController) UpdateRegistrationData(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	// FIX 2: Validasi Foto KTP (Wajib)
 	fileKTP, err := ctx.FormFile("photo_ktp_url")
 	if err != nil {
@@ -172,7 +172,7 @@ func (c *UserController) FindUserByEmail(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.UserService.FindUserById(userID)
+	result, err := c.UserService.FindUserById(userID, "member")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, model.APIResponse{
 			Error:   true,

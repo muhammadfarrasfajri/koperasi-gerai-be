@@ -82,7 +82,8 @@ func (ctrl *AdminController) VerifyRegistration(c *gin.Context) {
 	}
 
 	var req struct {
-		Action string `json:"action" binding:"required"` // 'approve' or 'reject'
+		Action          string `json:"action" binding:"required"` // 'approve', 'active', or 'reject'
+		RejectionReason string `json:"rejection_reason"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -93,7 +94,28 @@ func (ctrl *AdminController) VerifyRegistration(c *gin.Context) {
 		return
 	}
 
-	err = ctrl.AdminService.VerifyRegistration(c.Request.Context(), userID, req.Action)
+	if req.Action == "reject" && req.RejectionReason == "" {
+		c.JSON(http.StatusBadRequest, WebErrorResponse{
+			Status:  http.StatusBadRequest,
+			Message: "rejection_reason is required when action is reject",
+		})
+		return
+	}
+
+	// Ambil ID admin yang memverifikasi dari context (diekstrak oleh AuthMiddleware)
+	adminIDVal, exists := c.Get("user_id")
+	var adminID int64
+	if exists {
+		if idInt, ok := adminIDVal.(int); ok {
+			adminID = int64(idInt)
+		} else if idFloat, ok := adminIDVal.(float64); ok {
+			adminID = int64(idFloat)
+		} else if idInt64, ok := adminIDVal.(int64); ok {
+			adminID = idInt64
+		}
+	}
+
+	err = ctrl.AdminService.VerifyRegistration(c.Request.Context(), userID, req.Action, req.RejectionReason, adminID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, WebErrorResponse{
 			Status:  http.StatusInternalServerError,
@@ -104,7 +126,7 @@ func (ctrl *AdminController) VerifyRegistration(c *gin.Context) {
 	}
 
 	var msg string
-	if req.Action == "approve" {
+	if req.Action == "approve" || req.Action == "active" {
 		msg = "User registration approved and user activated successfully"
 	} else {
 		msg = "User registration rejected successfully"
@@ -151,5 +173,34 @@ func (ctrl *AdminController) GetDashboardSummary(c *gin.Context) {
 		Status:  http.StatusOK,
 		Message: "Dashboard summary retrieved successfully",
 		Data:    summary,
+	})
+}
+
+// GetUserDetails menangani request GET /api/admin/v1/users/:id
+func (ctrl *AdminController) GetUserDetails(c *gin.Context) {
+	idStr := c.Param("id")
+	userID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, WebErrorResponse{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid user ID, must be an integer",
+		})
+		return
+	}
+
+	user, err := ctrl.AdminService.GetUserDetails(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, WebErrorResponse{
+			Status:  http.StatusNotFound,
+			Message: "User not found or is not a member",
+			Details: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, WebResponse{
+		Status:  http.StatusOK,
+		Message: "User details retrieved successfully",
+		Data:    user,
 	})
 }

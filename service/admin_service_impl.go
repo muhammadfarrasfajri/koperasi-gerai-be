@@ -51,22 +51,22 @@ func (s *AdminServiceImpl) GetUsersList(ctx context.Context, statusFilter string
 	return users, meta, nil
 }
 
-func (s *AdminServiceImpl) VerifyRegistration(ctx context.Context, userID int64, action string) error {
-	var status string
-	var isActive bool
+func (s *AdminServiceImpl) VerifyRegistration(ctx context.Context, userID int64, action string, rejectionReason string, verifiedBy int64) error {
+	var paymentStatus string
+	var userStatus string
 
 	switch action {
-	case "approve":
-		status = "approved"
-		isActive = true
+	case "approve", "active":
+		paymentStatus = "approve"
+		userStatus = "active"
 	case "reject":
-		status = "rejected"
-		isActive = false
+		paymentStatus = "reject"
+		userStatus = "reject"
 	default:
-		return errors.New("invalid action: action must be 'approve' or 'reject'")
+		return errors.New("invalid action: action must be 'approve', 'active' or 'reject'")
 	}
 
-	return s.AdminRepo.VerifyUser(ctx, userID, status, isActive)
+	return s.AdminRepo.VerifyUser(ctx, userID, paymentStatus, userStatus, rejectionReason, verifiedBy)
 }
 
 func (s *AdminServiceImpl) GetReferralTree(ctx context.Context) ([]*model.ReferralNode, error) {
@@ -80,6 +80,10 @@ func (s *AdminServiceImpl) GetReferralTree(ctx context.Context) ([]*model.Referr
 
 func (s *AdminServiceImpl) GetAdminSummary(ctx context.Context) (model.AdminSummary, error) {
 	return s.AdminRepo.GetAdminSummary(ctx)
+}
+
+func (s *AdminServiceImpl) GetUserDetails(ctx context.Context, userID int64) (model.UserDetail, error) {
+	return s.AdminRepo.GetUserByID(ctx, userID)
 }
 
 // BuildReferralTree mengonstruksi pohon referral berkedalaman N secara efisien O(N) menggunakan pointer map

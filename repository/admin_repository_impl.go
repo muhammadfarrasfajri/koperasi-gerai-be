@@ -38,9 +38,11 @@ func (r *AdminRepositoryImpl) GetUsers(ctx context.Context, statusFilter string,
 
 	switch statusFilter {
 	case "pending":
-		query = query.Where("pay.status = ? OR u.is_active = ?", "pending", false)
-	case "verified", "active":
-		query = query.Where("u.is_active = ? AND pay.status = ?", true, "approved")
+		query = query.Where("u.status = ?", "pending")
+	case "verified", "active", "approve":
+		query = query.Where("u.status = ?", "active")
+	case "reject", "rejected":
+		query = query.Where("u.status = ?", "reject")
 	}
 
 	// 1. Hitung total baris yang cocok sebelum pagination
@@ -51,15 +53,14 @@ func (r *AdminRepositoryImpl) GetUsers(ctx context.Context, statusFilter string,
 
 	// 2. Ambil data terpaginasi
 	offset := (page - 1) * limit
-	err = query.Select(`u.id as user_id, u.email, u.role, u.is_active, u.created_at,
+	err = query.Select(`u.id as user_id, u.email, u.role, u.status, u.created_at,
 			p.full_name, 
 			p.phone_number as whatsapp_number, 
-			p.phone_number as whats_app_number, 
-			p.nik, p.member_type, p.address,
+			p.nik, p.member_type, p.address, COALESCE(p.city, '') as city,
 			p.photo_ktp_url, p.photo_selfie_url, p.bank_name, p.bank_account_number, p.referral_number,
 			COALESCE(pay.amount, 0) as payment_amount, 
 			COALESCE(pay.payment_proof_url, '') as payment_proof_url, 
-			COALESCE(pay.status, '') as payment_status`).
+			COALESCE(u.rejection_reason, '') as rejection_reason`).
 		Limit(limit).
 		Offset(offset).
 		Order("u.created_at DESC").
@@ -72,20 +73,28 @@ func (r *AdminRepositoryImpl) GetUsers(ctx context.Context, statusFilter string,
 	return users, totalRows, nil
 }
 
-func (r *AdminRepositoryImpl) VerifyUser(ctx context.Context, userID int64, status string, isActive bool) error {
+func (r *AdminRepositoryImpl) VerifyUser(ctx context.Context, userID int64, paymentStatus string, userStatus string, rejectionReason string, verifiedBy int64) error {
 	return r.GormDB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 1. Update status pembayaran pendaftaran beserta waktu verifikasi (verified_at)
-		updates := map[string]interface{}{
-			"status":      status,
-			"verified_at": gorm.Expr("NOW()"),
-		}
-		err := tx.Table("registration_payments").Where("user_id = ?", userID).Updates(updates).Error
+		// Cari admins.id berdasarkan users.id (verifiedBy)
+		var adminID int64
+		err := tx.Table("admins").
+			Select("id").
+			Where("email = (SELECT email FROM users WHERE id = ?)", verifiedBy).
+			Scan(&adminID).Error
 		if err != nil {
 			return err
 		}
 
-		// 2. Update status keaktifan user
-		err = tx.Table("users").Where("id = ?", userID).Update("is_active", isActive).Error
+		// Update kolom verifikasi (status, verified_at, verified_by, rejection_reason) langsung di tabel users
+		updates := map[string]interface{}{
+			"status":           userStatus,
+			"verified_at":      gorm.Expr("NOW()"),
+			"rejection_reason": rejectionReason,
+		}
+		if adminID > 0 {
+			updates["verified_by"] = adminID
+		}
+		err = tx.Table("users").Where("id = ?", userID).Updates(updates).Error
 		if err != nil {
 			return err
 		}
@@ -98,7 +107,7 @@ func (r *AdminRepositoryImpl) GetAllProfiles(ctx context.Context) ([]model.UserP
 	var profiles []model.UserProfile
 	
 	err := r.GormDB.WithContext(ctx).Table("user_profiles").
-		Select(`id, user_id, full_name, phone_number, nik, member_type, address, 
+		Select(`id, user_id, full_name, phone_number, nik, member_type, address, city, 
 				photo_ktp_url, photo_selfie_url, bank_name, bank_account_number, 
 				referral_number`).
 		Scan(&profiles).Error
@@ -124,12 +133,38 @@ func (r *AdminRepositoryImpl) GetAdminSummary(ctx context.Context) (model.AdminS
 	// 2. Hitung total pengajuan pending verifikasi
 	// (yaitu: users yang is_active = false atau registration_payments yang statusnya 'pending')
 	err = r.GormDB.WithContext(ctx).Table("users u").
-		Joins("LEFT JOIN registration_payments pay ON u.id = pay.user_id").
-		Where("u.role = ? AND (pay.status = ? OR u.is_active = ?)", "member", "pending", false).
+		Where("u.role = ? AND u.status = ?", "member", "pending").
 		Count(&summary.TotalPendingVerification).Error
 	if err != nil {
 		return summary, err
 	}
 
 	return summary, nil
+}
+
+func (r *AdminRepositoryImpl) GetUserByID(ctx context.Context, userID int64) (model.UserDetail, error) {
+	var user model.UserDetail
+
+	err := r.GormDB.WithContext(ctx).Table("users u").
+		Joins("LEFT JOIN user_profiles p ON u.id = p.user_id").
+		Joins("LEFT JOIN registration_payments pay ON u.id = pay.user_id").
+		Where("u.id = ? AND u.role = ?", userID, "member").
+		Select(`u.id as user_id, u.email, u.role, u.status, u.created_at,
+				p.full_name, 
+				p.phone_number as whatsapp_number, 
+				p.nik, p.member_type, p.address, COALESCE(p.city, '') as city,
+				p.photo_ktp_url, p.photo_selfie_url, p.bank_name, p.bank_account_number, p.referral_number,
+				COALESCE(pay.amount, 0) as payment_amount, 
+				COALESCE(pay.payment_proof_url, '') as payment_proof_url, 
+				COALESCE(u.rejection_reason, '') as rejection_reason`).
+		Scan(&user).Error
+
+	if err != nil {
+		return user, err
+	}
+	if user.UserID == 0 {
+		return user, gorm.ErrRecordNotFound
+	}
+
+	return user, nil
 }

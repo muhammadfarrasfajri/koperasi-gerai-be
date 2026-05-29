@@ -167,7 +167,7 @@ func (s *AuthServiceImpl) Login(idToken string) (map[string]interface{}, error) 
 	}
 
 	// generate refresh token
-	refreshToken, err := s.JWTManager.GenerateRefreshToken(user.ID)
+	refreshToken, err := s.JWTManager.GenerateRefreshToken(user.ID, user.Role)
 	if err != nil {
 		return nil, err
 	}

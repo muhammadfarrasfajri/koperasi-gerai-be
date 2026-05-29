@@ -48,7 +48,6 @@ type RegistrationPayment struct {
 	UserID          int     `json:"user_id"`
 	Amount          float64 `json:"amount"`
 	PaymentProofURL string  `json:"payment_proof_url"`
-	Status          string  `json:"status"`
 }
 
 type RefreshToken struct {

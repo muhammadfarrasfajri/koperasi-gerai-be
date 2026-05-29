@@ -55,6 +55,7 @@ func (s *RefreshTokenServiceImpl) RefreshToken(refreshToken string) (map[string]
 		return nil, errors.New("invalid user id in token")
 	}
 	userID := int(userIDFloat)
+	role, _ := claims["role"].(string)
 
 	// 2. LOG: Cari di Database
 	tokenCheck, err := s.RefreshRepo.FindRefreshTokenUser(userID)
@@ -68,7 +69,7 @@ func (s *RefreshTokenServiceImpl) RefreshToken(refreshToken string) (map[string]
 		return nil, errors.New("refresh token not match")
 	}
 
-	user, err := s.UserRepo.FindUserById(userID)
+	user, err := s.UserRepo.FindUserById(userID, role)
 	if err != nil {
 		return nil, errors.New("User not found")
 	}
@@ -80,7 +81,7 @@ func (s *RefreshTokenServiceImpl) RefreshToken(refreshToken string) (map[string]
 		return nil, errors.New("Error generating access token")
 	}
 
-	newRefreshToken, err := s.JWTManager.GenerateRefreshToken(user.ID)
+	newRefreshToken, err := s.JWTManager.GenerateRefreshToken(user.ID, user.Role)
 	if err != nil {
 		fmt.Printf("[ERROR] [%s] Gagal generate Refresh Token baru: %v\n", now, err)
 		return nil, errors.New("Error generating refresh token")

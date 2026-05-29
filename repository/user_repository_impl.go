@@ -17,7 +17,47 @@ func NewUserRepository(db *sql.DB) *UserRepositoryImpl {
 	}
 }
 
-func (r *UserRepositoryImpl) FindUserById(id int) (*model.UserResponse, error) {
+func (r *UserRepositoryImpl) FindUserById(id int, role string) (*model.UserResponse, error) {
+	if role == "admin" {
+		var email string
+		err := r.DB.QueryRow("SELECT email FROM users WHERE id = ?", id).Scan(&email)
+		if err != nil {
+			return nil, err
+		}
+
+		queryAdmin := `
+			SELECT id, email, full_name, role, is_active
+			FROM admins
+			WHERE email = ?
+			LIMIT 1`
+		var admin struct {
+			ID       int
+			Email    string
+			FullName string
+			Role     string
+			IsActive bool
+		}
+		err = r.DB.QueryRow(queryAdmin, email).Scan(&admin.ID, &admin.Email, &admin.FullName, &admin.Role, &admin.IsActive)
+		if err != nil {
+			return nil, err
+		}
+
+		status := "active"
+		if !admin.IsActive {
+			status = "pending"
+		}
+
+		return &model.UserResponse{
+			ID:     id,
+			Email:  admin.Email,
+			Role:   admin.Role,
+			Status: status,
+			Profile: model.UserProfile{
+				FullName: admin.FullName,
+			},
+		}, nil
+	}
+
 	// Menggunakan LEFT JOIN agar pengguna tanpa profil (seperti Admin) tetap bisa dibaca secara aman.
 	// COALESCE digunakan untuk memberikan nilai default (string kosong) apabila kolom profil bernilai NULL.
 	query := `
@@ -65,6 +105,57 @@ func (r *UserRepositoryImpl) FindUserById(id int) (*model.UserResponse, error) {
 }
 
 func (r *UserRepositoryImpl) FindUserByEmail(email string) (*model.UserResponse, error) {
+	// 1. Cek apakah ada di tabel admins terlebih dahulu
+	queryAdmin := `
+		SELECT id, email, full_name, role, is_active
+		FROM admins
+		WHERE email = ?
+		LIMIT 1`
+	var admin struct {
+		ID       int
+		Email    string
+		FullName string
+		Role     string
+		IsActive bool
+	}
+	err := r.DB.QueryRow(queryAdmin, email).Scan(&admin.ID, &admin.Email, &admin.FullName, &admin.Role, &admin.IsActive)
+	if err == nil {
+		// Ditemukan di tabel admins!
+		// Cek apakah admin ini sudah terdaftar di tabel users untuk kebutuhan JWT & Foreign Key constraints
+		var userID int
+		errUser := r.DB.QueryRow("SELECT id FROM users WHERE email = ? AND role = 'admin' LIMIT 1", email).Scan(&userID)
+		if errUser == sql.ErrNoRows {
+			// Jika belum terdaftar di tabel users, daftarkan otomatis secara transparan (Shadow account)
+			res, errInsert := r.DB.Exec("INSERT INTO users (email, role, status) VALUES (?, 'admin', 'active')", email)
+			if errInsert != nil {
+				return nil, errInsert
+			}
+			lastID, errLastID := res.LastInsertId()
+			if errLastID != nil {
+				return nil, errLastID
+			}
+			userID = int(lastID)
+		} else if errUser != nil {
+			return nil, errUser
+		}
+
+		status := "active"
+		if !admin.IsActive {
+			status = "pending"
+		}
+
+		return &model.UserResponse{
+			ID:     userID, // Gunakan users.id agar lolos FK constraints di refresh_tokens/registration_payments
+			Email:  admin.Email,
+			Role:   admin.Role,
+			Status: status,
+			Profile: model.UserProfile{
+				FullName: admin.FullName,
+			},
+		}, nil
+	}
+
+	// 2. Jika tidak ditemukan di tabel admins, jalankan pencarian untuk member seperti biasa
 	// Menggunakan LEFT JOIN agar pengguna tanpa profil (seperti Admin) tetap bisa dibaca secara aman.
 	// COALESCE digunakan untuk memberikan nilai default (string kosong) apabila kolom profil bernilai NULL.
 	query := `
@@ -86,12 +177,11 @@ func (r *UserRepositoryImpl) FindUserByEmail(email string) (*model.UserResponse,
 
 	user := &model.UserResponse{}
 
-	err := r.DB.QueryRow(query, email).Scan(
-		&user.ID,    // 1
-		&user.Email, // 2
-		&user.Role,  // 3
-		&user.Status,
-		&user.RejectionReason,           // 4
+	err = r.DB.QueryRow(query, email).Scan(
+		&user.ID,                        // 1
+		&user.Email,                     // 2
+		&user.Role,                      // 3
+		&user.Status,                    // 4
 		&user.Profile.FullName,          // 5
 		&user.Profile.PhoneNumber,       // 6
 		&user.Profile.NIK,               // 7
