@@ -18,6 +18,9 @@ func NewUserRepository(db *sql.DB) *UserRepositoryImpl {
 }
 
 func (r *UserRepositoryImpl) FindUserById(id int, role string) (*model.UserResponse, error) {
+	// ==========================================
+	// 1. JIKA ROLE ADALAH ADMIN
+	// ==========================================
 	if role == "admin" {
 		var email string
 		err := r.DB.QueryRow("SELECT email FROM users WHERE id = ?", id).Scan(&email)
@@ -58,8 +61,9 @@ func (r *UserRepositoryImpl) FindUserById(id int, role string) (*model.UserRespo
 		}, nil
 	}
 
-	// Menggunakan LEFT JOIN agar pengguna tanpa profil (seperti Admin) tetap bisa dibaca secara aman.
-	// COALESCE digunakan untuk memberikan nilai default (string kosong) apabila kolom profil bernilai NULL.
+	// ==========================================
+	// 2. JIKA ROLE BUKAN ADMIN (USER BIASA)
+	// ==========================================
 	query := `
 		SELECT 
 			u.id, u.email, u.role, u.status, u.rejection_reason,
@@ -80,21 +84,21 @@ func (r *UserRepositoryImpl) FindUserById(id int, role string) (*model.UserRespo
 	user := &model.UserResponse{}
 
 	err := r.DB.QueryRow(query, id).Scan(
-		&user.ID,    // 1
-		&user.Email, // 2
-		&user.Role,  // 3
-		&user.Status,
-		&user.RejectionReason,           // 4
-		&user.Profile.FullName,          // 5
-		&user.Profile.PhoneNumber,       // 6
-		&user.Profile.NIK,               // 7
-		&user.Profile.MemberType,        // 8
-		&user.Profile.Address,           // 9
-		&user.Profile.PhotoKTPURL,       // 10
-		&user.Profile.PhotoSelfieURL,    // 11
-		&user.Profile.BankName,          // 12
-		&user.Profile.BankAccountNumber, // 13
-		&user.TotalReferral,             // 14
+		&user.ID,                        // 1
+		&user.Email,                     // 2
+		&user.Role,                      // 3
+		&user.Status,                    // 4
+		&user.RejectionReason,           // 5
+		&user.Profile.FullName,          // 6
+		&user.Profile.PhoneNumber,       // 7
+		&user.Profile.NIK,               // 8
+		&user.Profile.MemberType,        // 9
+		&user.Profile.Address,           // 10
+		&user.Profile.PhotoKTPURL,       // 11
+		&user.Profile.PhotoSelfieURL,    // 12
+		&user.Profile.BankName,          // 13
+		&user.Profile.BankAccountNumber, // 14
+		&user.TotalReferral,             // 15
 	)
 
 	if err != nil {
@@ -104,28 +108,36 @@ func (r *UserRepositoryImpl) FindUserById(id int, role string) (*model.UserRespo
 	return user, nil
 }
 
-func (r *UserRepositoryImpl) FindUserByEmail(email string) (*model.UserResponse, error) {
-	// 1. Cek apakah ada di tabel admins terlebih dahulu
-	queryAdmin := `
-		SELECT id, email, full_name, role, is_active
-		FROM admins
-		WHERE email = ?
-		LIMIT 1`
-	var admin struct {
-		ID       int
-		Email    string
-		FullName string
-		Role     string
-		IsActive bool
-	}
-	err := r.DB.QueryRow(queryAdmin, email).Scan(&admin.ID, &admin.Email, &admin.FullName, &admin.Role, &admin.IsActive)
-	if err == nil {
-		// Ditemukan di tabel admins!
-		// Cek apakah admin ini sudah terdaftar di tabel users untuk kebutuhan JWT & Foreign Key constraints
+// Tambahkan parameter `role string` di sini
+func (r *UserRepositoryImpl) FindUserByEmail(email string, role string) (*model.UserResponse, error) {
+	
+	// ==========================================
+	// 1. JIKA ROLE ADALAH ADMIN
+	// ==========================================
+	if role == "admin" {
+		queryAdmin := `
+			SELECT id, email, full_name, role, is_active
+			FROM admins
+			WHERE email = ?
+			LIMIT 1`
+		var admin struct {
+			ID       int
+			Email    string
+			FullName string
+			Role     string
+			IsActive bool
+		}
+		
+		err := r.DB.QueryRow(queryAdmin, email).Scan(&admin.ID, &admin.Email, &admin.FullName, &admin.Role, &admin.IsActive)
+		if err != nil {
+			return nil, err // Akan error jika email admin tidak ditemukan
+		}
+		
+		// Cek Shadow Account di tabel users (untuk keperluan FK dan JWT)
 		var userID int
 		errUser := r.DB.QueryRow("SELECT id FROM users WHERE email = ? AND role = 'admin' LIMIT 1", email).Scan(&userID)
+		
 		if errUser == sql.ErrNoRows {
-			// Jika belum terdaftar di tabel users, daftarkan otomatis secara transparan (Shadow account)
 			res, errInsert := r.DB.Exec("INSERT INTO users (email, role, status) VALUES (?, 'admin', 'active')", email)
 			if errInsert != nil {
 				return nil, errInsert
@@ -145,7 +157,7 @@ func (r *UserRepositoryImpl) FindUserByEmail(email string) (*model.UserResponse,
 		}
 
 		return &model.UserResponse{
-			ID:     userID, // Gunakan users.id agar lolos FK constraints di refresh_tokens/registration_payments
+			ID:     userID, 
 			Email:  admin.Email,
 			Role:   admin.Role,
 			Status: status,
@@ -155,9 +167,9 @@ func (r *UserRepositoryImpl) FindUserByEmail(email string) (*model.UserResponse,
 		}, nil
 	}
 
-	// 2. Jika tidak ditemukan di tabel admins, jalankan pencarian untuk member seperti biasa
-	// Menggunakan LEFT JOIN agar pengguna tanpa profil (seperti Admin) tetap bisa dibaca secara aman.
-	// COALESCE digunakan untuk memberikan nilai default (string kosong) apabila kolom profil bernilai NULL.
+	// ==========================================
+	// 2. JIKA ROLE BUKAN ADMIN (USER BIASA)
+	// ==========================================
 	query := `
 		SELECT 
 			u.id, u.email, u.role, u.status, u.rejection_reason,
@@ -177,21 +189,22 @@ func (r *UserRepositoryImpl) FindUserByEmail(email string) (*model.UserResponse,
 
 	user := &model.UserResponse{}
 
-	err = r.DB.QueryRow(query, email).Scan(
+	err := r.DB.QueryRow(query, email).Scan(
 		&user.ID,                        // 1
 		&user.Email,                     // 2
 		&user.Role,                      // 3
 		&user.Status,                    // 4
-		&user.Profile.FullName,          // 5
-		&user.Profile.PhoneNumber,       // 6
-		&user.Profile.NIK,               // 7
-		&user.Profile.MemberType,        // 8
-		&user.Profile.Address,           // 9
-		&user.Profile.PhotoKTPURL,       // 10
-		&user.Profile.PhotoSelfieURL,    // 11
-		&user.Profile.BankName,          // 12
-		&user.Profile.BankAccountNumber, // 13
-		&user.TotalReferral,             // 14
+		&user.RejectionReason,           // 5 (Pastikan ini sesuai dengan struct kamu)
+		&user.Profile.FullName,          // 6
+		&user.Profile.PhoneNumber,       // 7
+		&user.Profile.NIK,               // 8
+		&user.Profile.MemberType,        // 9
+		&user.Profile.Address,           // 10
+		&user.Profile.PhotoKTPURL,       // 11
+		&user.Profile.PhotoSelfieURL,    // 12
+		&user.Profile.BankName,          // 13
+		&user.Profile.BankAccountNumber, // 14
+		&user.TotalReferral,             // 15
 	)
 
 	if err != nil {

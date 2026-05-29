@@ -153,11 +153,20 @@ func (s *AuthServiceImpl) Login(idToken string) (map[string]interface{}, error) 
 		return nil, errors.New("email not found in token claims")
 	}
 
-	// find user by email
-	user, err := s.UserRepo.FindUserByEmail(email)
+	// ==========================================
+	// FIX: AUTO-DETECT ROLE
+	// ==========================================
+	// 1. Cari user di tabel Admin terlebih dahulu
+	user, err := s.UserRepo.FindUserByEmail(email, "admin")
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil, errors.New("user not found, please register first")
+		// 2. Jika gagal (bukan admin), cari di tabel Users (anggota biasa)
+		user, err = s.UserRepo.FindUserByEmail(email, "user") // Ubah "user" jika default role member kamu berbeda
+
+		if err != nil {
+			// 3. Jika di kedua tempat tidak ada, berarti email benar-benar belum terdaftar
+			fmt.Println("Login Failed:", err.Error())
+			return nil, errors.New("user not found, please register first")
+		}
 	}
 
 	// generate access token
