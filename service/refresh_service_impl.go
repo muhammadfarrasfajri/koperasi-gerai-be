@@ -58,20 +58,17 @@ func (s *RefreshTokenServiceImpl) RefreshToken(refreshToken string) (map[string]
 	// 2. LOG: Cari di Database
 	tokenCheck, err := s.RefreshRepo.FindRefreshTokenUser(userID)
 	if err != nil {
-		fmt.Printf("[WARN] [%s] Refresh token untuk User %s tidak ditemukan di database (Session expired)\n", now, userID)
 		return nil, err
 	}
 
 	// 3. LOG: Validasi Hash (Keamanan Utama)
 	incomingTokenHash := middleware.HashToken(refreshToken)
 	if incomingTokenHash != tokenCheck.Token {
-		fmt.Printf("[SECURITY-ALERT] [%s] Token mismatch untuk User %s! Kemungkinan percobaan replay attack.\n", now, userID)
 		return nil, errors.New("refresh token not match")
 	}
 
 	user, err := s.UserRepo.FindUserById(userID)
 	if err != nil {
-		fmt.Printf("[ERROR] [%s] User ID %s ada di token tapi tidak ada di tabel users\n", now, userID)
 		return nil, errors.New("User not found")
 	}
 
@@ -103,10 +100,7 @@ func (s *RefreshTokenServiceImpl) RefreshToken(refreshToken string) (map[string]
 		fmt.Printf("[ERROR] [%s] Gagal menyimpan session baru ke database: %v\n", now, err)
 		return nil, errors.New("Failed to save new session")
 	}
-
-	// 6. LOG: Sukses
-	fmt.Printf("[SUCCESS] [%s] Rotasi token berhasil untuk User: %s (ID: %s)\n", now, user.Email, user.ID)
-
+	
 	return map[string]interface{}{
 		"access_token":  newAccessToken,
 		"refresh_token": newRefreshToken,
