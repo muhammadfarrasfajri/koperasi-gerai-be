@@ -76,7 +76,7 @@ type RegisterMemberRequest struct {
 }
 
 type LoginMemberRequest struct {
-	TokenId string `form:"token_id" binding:"required"`
+	TokenId string `form:"token_id" json:"token_id" binding:"required"`
 }
 
 // Struct untuk list daftar orang yang diajak

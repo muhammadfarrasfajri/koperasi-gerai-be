@@ -49,11 +49,12 @@ func (s *RefreshTokenServiceImpl) RefreshToken(refreshToken string) (map[string]
 		return nil, errors.New("invalid token claims")
 	}
 
-	userID, ok := claims["user_id"].(int)
+	userIDFloat, ok := claims["user_id"].(float64)
 	if !ok {
 		fmt.Printf("[WARN] [%s] Token valid tapi user_id tidak ditemukan di claims\n", now)
 		return nil, errors.New("invalid user id in token")
 	}
+	userID := int(userIDFloat)
 
 	// 2. LOG: Cari di Database
 	tokenCheck, err := s.RefreshRepo.FindRefreshTokenUser(userID)
@@ -100,7 +101,7 @@ func (s *RefreshTokenServiceImpl) RefreshToken(refreshToken string) (map[string]
 		fmt.Printf("[ERROR] [%s] Gagal menyimpan session baru ke database: %v\n", now, err)
 		return nil, errors.New("Failed to save new session")
 	}
-	
+
 	return map[string]interface{}{
 		"access_token":  newAccessToken,
 		"refresh_token": newRefreshToken,
