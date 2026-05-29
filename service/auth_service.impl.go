@@ -102,7 +102,7 @@ func (s *AuthServiceImpl) Register(req model.RegisterMemberRequest) error {
 		Email:    email,
 		GoogleID: &token.UID,
 		Role:     "member",
-		IsActive: false,
+		Status:   "pending",
 	}
 
 	// 5. Mapping DTO ke Model Profile
@@ -159,7 +159,7 @@ func (s *AuthServiceImpl) Login(idToken string) (map[string]interface{}, error) 
 		fmt.Println(err.Error())
 		return nil, errors.New("user not found, please register first")
 	}
-	
+
 	// generate access token
 	accessToken, err := s.JWTManager.GenerateAccessToken(user.ID, user.Email, user.Role)
 	if err != nil {

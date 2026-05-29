@@ -11,7 +11,7 @@ type User struct {
 	GoogleID     *string   `json:"google_id"`     // Menggunakan pointer (*) agar bisa menerima nilai nil (NULL)
 	AuthProvider string    `json:"auth_provider"` // Contoh isi: "local" atau "google"
 	Role         string    `json:"role"`
-	IsActive     bool      `json:"is_active"`
+	Status       string    `json:"status"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 

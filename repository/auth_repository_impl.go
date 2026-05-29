@@ -28,8 +28,8 @@ func (r *AuthRepositoryImpl) Register(user model.User, profile model.UserProfile
 	defer tx.Rollback()
 
 	// 1. Insert User
-	queryUser := "INSERT INTO users (id, email, google_id, role, is_active) VALUES (?, ?, ?, ?, ?)"
-	res, err := tx.Exec(queryUser, user.ID, user.Email, user.GoogleID, user.Role, user.IsActive)
+	queryUser := "INSERT INTO users (id, email, google_id, role, status) VALUES (?, ?, ?, ?, ?)"
+	res, err := tx.Exec(queryUser, user.ID, user.Email, user.GoogleID, user.Role, user.Status)
 	if err != nil {
 		return err
 	}

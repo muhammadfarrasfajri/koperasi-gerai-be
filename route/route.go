@@ -44,8 +44,8 @@ func SetupRouter(r *gin.Engine, authController *controller.AuthController, userC
 
 		// Find user in database by email
 		var user model.User
-		err := config.DB.QueryRow("SELECT id, email, role, is_active FROM users WHERE email = ?", req.Email).Scan(
-			&user.ID, &user.Email, &user.Role, &user.IsActive,
+		err := config.DB.QueryRow("SELECT id, email, role, status FROM users WHERE email = ?", req.Email).Scan(
+			&user.ID, &user.Email, &user.Role, &user.Status,
 		)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found in local database: " + err.Error()})
