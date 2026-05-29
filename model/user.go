@@ -35,7 +35,7 @@ type UserResponse struct {
 	ID            int         `json:"id"`
 	Email         string      `json:"email"`
 	Role          string      `json:"role"`
-	IsActive      bool        `json:"is_active"`
+	Status        string      `json:"status"`
 	TotalReferral int         `json:"total_referral"`
 	Profile       UserProfile `json:"profile"`
 }

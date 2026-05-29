@@ -22,7 +22,7 @@ func (r *UserRepositoryImpl) FindUserById(id int) (*model.UserResponse, error) {
 	// COALESCE digunakan untuk memberikan nilai default (string kosong) apabila kolom profil bernilai NULL.
 	query := `
 		SELECT 
-			u.id, u.email, u.role, u.is_active,
+			u.id, u.email, u.role, u.status,
 			COALESCE(p.full_name, '') AS full_name, 
 			COALESCE(p.phone_number, '') AS phone_number, 
 			COALESCE(p.nik, '') AS nik, 
@@ -43,7 +43,7 @@ func (r *UserRepositoryImpl) FindUserById(id int) (*model.UserResponse, error) {
 		&user.ID,                        // 1
 		&user.Email,                     // 2
 		&user.Role,                      // 3
-		&user.IsActive,                  // 4
+		&user.Status,                    // 4
 		&user.Profile.FullName,          // 5
 		&user.Profile.PhoneNumber,       // 6
 		&user.Profile.NIK,               // 7
@@ -68,7 +68,7 @@ func (r *UserRepositoryImpl) FindUserByEmail(email string) (*model.UserResponse,
 	// COALESCE digunakan untuk memberikan nilai default (string kosong) apabila kolom profil bernilai NULL.
 	query := `
 		SELECT 
-			u.id, u.email, u.role, u.is_active,
+			u.id, u.email, u.role, u.status,
 			COALESCE(p.full_name, '') AS full_name, 
 			COALESCE(p.phone_number, '') AS phone_number, 
 			COALESCE(p.nik, '') AS nik, 
@@ -89,7 +89,7 @@ func (r *UserRepositoryImpl) FindUserByEmail(email string) (*model.UserResponse,
 		&user.ID,                        // 1
 		&user.Email,                     // 2
 		&user.Role,                      // 3
-		&user.IsActive,                  // 4
+		&user.Status,                    // 4
 		&user.Profile.FullName,          // 5
 		&user.Profile.PhoneNumber,       // 6
 		&user.Profile.NIK,               // 7
