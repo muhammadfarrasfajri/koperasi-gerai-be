@@ -12,6 +12,7 @@ import (
 	"github.com/muhammadfarrasfajri/koperasi-gerai-be/middleware"
 	"github.com/muhammadfarrasfajri/koperasi-gerai-be/model"
 	"github.com/muhammadfarrasfajri/koperasi-gerai-be/repository"
+	"github.com/muhammadfarrasfajri/koperasi-gerai-be/utils"
 )
 
 type AuthServiceImpl struct {
@@ -91,6 +92,11 @@ func (s *AuthServiceImpl) Register(req model.RegisterMemberRequest) error {
 		return fmt.Errorf("NIK already exists")
 	}
 
+	kotaAsal, err := utils.GetCityFromNIK(cleanNIK)
+	if err != nil {
+		return err
+	}
+
 	// 4. Mapping DTO ke Model User
 	user := model.User{
 		Email:    email,
@@ -106,6 +112,7 @@ func (s *AuthServiceImpl) Register(req model.RegisterMemberRequest) error {
 		NIK:               cleanNIK,
 		MemberType:        req.MemberType,
 		Address:           req.Address,
+		City:              kotaAsal,
 		PhotoKTPURL:       req.PhotoKTPURL,
 		PhotoSelfieURL:    req.PhotoSelfieURL,
 		BankName:          req.BankName,

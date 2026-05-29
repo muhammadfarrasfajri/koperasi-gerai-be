@@ -23,6 +23,7 @@ type UserProfile struct {
 	NIK               string `json:"nik"`
 	MemberType        string `json:"member_type"`
 	Address           string `json:"address"`
+	City              string `json:"city"`
 	PhotoKTPURL       string `json:"photo_ktp_url"`
 	PhotoSelfieURL    string `json:"photo_selfie_url"`
 	BankName          string `json:"bank_name"`

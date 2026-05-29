@@ -41,15 +41,15 @@ func (r *AuthRepositoryImpl) Register(user model.User, profile model.UserProfile
 
 	// 2. Insert Profile
 	queryProfile := `INSERT INTO user_profiles 
-		(user_id, full_name, phone_number, nik, member_type, address, photo_ktp_url, photo_selfie_url, bank_name, bank_account_number, referral_number) 
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		(user_id, full_name, phone_number, nik, member_type, address, city, photo_ktp_url, photo_selfie_url, bank_name, bank_account_number, referral_number) 
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	var refNumber interface{}
 	if profile.ReferralNumber != "" {
 		refNumber = profile.ReferralNumber
 	}
 
-	_, err = tx.Exec(queryProfile, userID, profile.FullName, profile.PhoneNumber, profile.NIK, profile.MemberType, profile.Address, profile.PhotoKTPURL, profile.PhotoSelfieURL, profile.BankName, profile.BankAccountNumber, refNumber)
+	_, err = tx.Exec(queryProfile, userID, profile.FullName, profile.PhoneNumber, profile.NIK, profile.MemberType, profile.Address, profile.City, profile.PhotoKTPURL, profile.PhotoSelfieURL, profile.BankName, profile.BankAccountNumber, refNumber)
 	if err != nil {
 		return err
 	}
