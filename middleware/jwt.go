@@ -36,9 +36,10 @@ func (j *JWTManager) GenerateAccessToken(userID int, email string, role string) 
 	return token.SignedString(j.AccessSecret)
 }
 
-func (j *JWTManager) GenerateRefreshToken(userID int) (string, error) {
+func (j *JWTManager) GenerateRefreshToken(userID int, role string) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
+		"role":    role,
 		"exp":     time.Now().Add(7 * 24 * time.Hour).Unix(),
 	}
 

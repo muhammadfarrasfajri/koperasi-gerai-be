@@ -23,8 +23,8 @@ func (s *UserServiceImpl) GetUserDashboardDashboard(userID int) (*model.UserDash
 	return s.UserRepo.GetUserDashboardDashboard(userID)
 }
 
-func (s *UserServiceImpl) FindUserById(id int) (*model.UserResponse, error) {
-	return s.UserRepo.FindUserById(id)
+func (s *UserServiceImpl) FindUserById(id int, role string) (*model.UserResponse, error) {
+	return s.UserRepo.FindUserById(id, role)
 }
 
 func (s *UserServiceImpl) UpdateRegistrationData(userID int, req model.UpdateRegistrationRequest) error {

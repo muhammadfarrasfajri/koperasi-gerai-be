@@ -7,13 +7,14 @@ type UserDetail struct {
 	UserID            int64     `json:"user_id"`
 	Email             string    `json:"email"`
 	Role              string    `json:"role"`
-	IsActive          bool      `json:"is_active"`
+	Status            string    `json:"status"`
 	CreatedAt         time.Time `json:"created_at"`
 	FullName          string    `json:"full_name"`
-	WhatsAppNumber    string    `json:"whatsapp_number"`
+	WhatsAppNumber    string    `json:"whatsapp_number" gorm:"column:whatsapp_number"`
 	NIK               string    `json:"nik"`
 	MemberType        string    `json:"member_type"`
 	Address           string    `json:"address"`
+	City              string    `json:"city"`
 	PhotoKTPURL       string    `json:"photo_ktp_url"`
 	PhotoSelfieURL    string    `json:"photo_selfie_url"`
 	BankName          string    `json:"bank_name"`
@@ -21,7 +22,7 @@ type UserDetail struct {
 	ReferralNumber    *string   `json:"referral_number"`
 	PaymentAmount     float64   `json:"payment_amount"`
 	PaymentProofURL   string    `json:"payment_proof_url"`
-	PaymentStatus     string    `json:"payment_status"`
+	RejectionReason   string    `json:"rejection_reason"`
 }
 
 // ReferralNode merepresentasikan satu simpul dalam pohon referral
