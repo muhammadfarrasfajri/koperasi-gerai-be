@@ -112,3 +112,19 @@ func (j *JWTManager) AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// AdminOnlyMiddleware memastikan pengguna memiliki role 'admin' di context Gin
+func AdminOnlyMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role, exists := c.Get("role")
+		if !exists || role != "admin" {
+			c.JSON(http.StatusForbidden, gin.H{
+				"status":  http.StatusForbidden,
+				"message": "Access forbidden: only admin role is allowed",
+			})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}

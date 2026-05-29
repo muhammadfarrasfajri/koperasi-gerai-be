@@ -1,0 +1,103 @@
+### 0. DEV-ONLY: Mock Login (Bypass Firebase untuk Testing Lokal)
+# PINTASAN TESTING: Masukkan email admin/user di database Anda.
+# Endpoint ini hanya aktif dalam mode debug/development (gin.Mode() == gin.DebugMode).
+# Anda tidak perlu mempunyai Firebase Google ID token untuk skenario ini!
+# Salin access_token dari respons di bawah, lalu tempel ke variabel @token di baris 43.
+POST http://localhost:8080/api/auth/v1/dev-login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "admin@gerai.org"
+}
+
+###
+
+### 1. Login Admin/User (Menggunakan Fitur Autentikasi Tim Anda - Firebase ID Token)
+# Anda memerlukan Firebase Google ID Token (token_id) hasil login di sisi Frontend.
+# Kirim token_id ini sebagai Form-urlencoded atau Form-data.
+# Jika berhasil, ini akan mengembalikan access_token dan refresh_token.
+# Copy access_token ke variabel @token di bawah untuk menguji rute terproteksi admin.
+POST http://localhost:8080/api/auth/v1/login
+Content-Type: application/x-www-form-urlencoded
+Accept: application/json
+
+token_id=PUT_FIREBASE_GOOGLE_ID_TOKEN_HERE
+
+###
+
+### 2. Refresh Access Token (Menggunakan Fitur Tim Anda)
+# Kirim refresh_token untuk mendapatkan access_token yang baru.
+POST http://localhost:8080/api/auth/v1/refresh
+Content-Type: application/json
+Accept: application/json
+
+{
+  "refresh_token": "PUT_REFRESH_TOKEN_HERE"
+}
+
+###
+
+# =========================================================================
+# VARIABEL TOKEN UNTUK PENGUJIAN RUTE TERPROTEKSI (JWT)
+# Tempel token akses hasil login/refresh di bawah ini tanpa tanda kutip:
+# =========================================================================
+@token = PASTE_ACCESS_TOKEN_DI_SINI
+
+
+### 3. Dapatkan Semua Informasi User Terpaginasi (Terproteksi JWT & AdminOnly)
+GET http://localhost:8080/api/admin/v1/users?status=all&page=1&limit=5
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+### 4. Dapatkan User yang Perlu Diverifikasi Terpaginasi (Terproteksi JWT & AdminOnly)
+GET http://localhost:8080/api/admin/v1/users?status=pending&page=1&limit=10
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+### 5. Dapatkan User yang Sudah Diverifikasi Terpaginasi (Terproteksi JWT & AdminOnly)
+GET http://localhost:8080/api/admin/v1/users?status=verified&page=1&limit=10
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+### 6. Lakukan Verifikasi - Setujui (Approve) Pendaftaran User (Terproteksi JWT & AdminOnly)
+POST http://localhost:8080/api/admin/v1/users/1/verify
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "action": "approve"
+}
+
+###
+
+### 7. Lakukan Verifikasi - Tolak (Reject) Pendaftaran User (Terproteksi JWT & AdminOnly)
+POST http://localhost:8080/api/admin/v1/users/1/verify
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "action": "reject"
+}
+
+###
+
+### 8. Ambil Struktur Pohon Referral Terstruktur (Terproteksi JWT & AdminOnly)
+GET http://localhost:8080/api/admin/v1/referrals
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+### 9. Ambil Ringkasan Dashboard Statistik Admin (Terproteksi JWT & AdminOnly)
+GET http://localhost:8080/api/admin/v1/dashboard/summary
+Authorization: Bearer {{token}}
+Accept: application/json

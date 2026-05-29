@@ -58,6 +58,7 @@ func main() {
 		container.RefreshController,
 		container.WalletController,
 		container.JWTManager,
+		container.AdminController,
 	)
 
 	// 8. Jalankan Server (FIX: Membaca port dari .env, fallback ke 8080 jika kosong)

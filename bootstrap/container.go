@@ -17,6 +17,7 @@ type Container struct {
 	RefreshController *controller.RefreshTokenController
 	WalletController  *controller.WalletController
 	JWTManager        *middleware.JWTManager
+	AdminController   *controller.AdminController // Integrasi Admin Controller
 }
 
 func InitContainer(userAuth *auth.Client) *Container {
@@ -26,6 +27,7 @@ func InitContainer(userAuth *auth.Client) *Container {
 	userRepo := repository.NewUserRepository(config.DB)
 	refreshRepo := repository.NewRefreshTokenRepository(config.DB)
 	walletRepo := repository.NewWalletRepositoryImpl(config.DB)
+	adminRepo := repository.NewAdminRepository() // Inisialisasi Admin GORM Repo
 
 	// Initialize middleware
 	jwtManager := middleware.NewJWTManager(os.Getenv("ACCESS_TOKEN_SECRET"), os.Getenv("REFRESH_TOKEN_SECRET"))
@@ -35,12 +37,14 @@ func InitContainer(userAuth *auth.Client) *Container {
 	userService := service.NewUserService(userRepo)
 	refreshService := service.NewRefreshTokenService(refreshRepo, userRepo, jwtManager)
 	walletService := service.NewWalletService(walletRepo)
+	adminService := service.NewAdminService(adminRepo) // Inisialisasi Admin Service
 
 	// Initialize controllers
 	authController := controller.NewAuthController(authService)
 	userController := controller.NewUserController(userService)
 	refreshController := controller.NewRefreshTokenController(refreshService)
 	walletController := controller.NewWalletController(walletService)
+	adminController := controller.NewAdminController(adminService) // Inisialisasi Admin Controller
 
 	return &Container{
 		AuthController:    authController,
@@ -48,5 +52,6 @@ func InitContainer(userAuth *auth.Client) *Container {
 		RefreshController: refreshController,
 		WalletController:  walletController,
 		JWTManager:        jwtManager,
+		AdminController:   adminController, // Kembalikan Admin Controller
 	}
 }
