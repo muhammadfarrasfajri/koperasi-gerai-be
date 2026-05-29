@@ -1,7 +1,11 @@
 package service
 
-import "github.com/muhammadfarrasfajri/koperasi-gerai-be/model"
+import (
+	"github.com/muhammadfarrasfajri/koperasi-gerai-be/model"
+)
 
 type AuthService interface {
-	Register(user model.User, profile model.UserProfile, payment model.RegistrationPayment) error
+	Register(req model.RegisterMemberRequest) error
+	Login(idToken string) (map[string]interface{}, error)
+	Logout(rawRefreshToken string) error
 }

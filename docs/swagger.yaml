@@ -1,0 +1,111 @@
+basePath: /
+definitions:
+  model.APIResponse:
+    properties:
+      data:
+        description: Data sukses (opsional)
+      error:
+        description: True/False
+        type: boolean
+      message:
+        description: Pesan untuk user
+        type: string
+      type:
+        description: Jenis error (ValidationError, etc)
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: farrasfajri@example.com
+    name: Muhammad Farras Fajri
+  description: Backend API Service untuk Aplikasi Koperasi Gerai.
+  termsOfService: http://swagger.io/terms/
+  title: Koperasi Gerai API
+  version: "1.0"
+paths:
+  /api/auth/v1/register:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Endpoint untuk pendaftaran anggota baru menggunakan Google ID Token
+        (Firebase), data diri KYC, beserta upload bukti transfer manual.
+      parameters:
+      - description: Firebase ID Token dari Google Auth
+        in: formData
+        name: token_id
+        required: true
+        type: string
+      - description: Nama Lengkap sesuai KTP
+        in: formData
+        name: full_name
+        required: true
+        type: string
+      - description: Nomor WhatsApp Aktif
+        in: formData
+        name: phone_number
+        required: true
+        type: string
+      - description: 16 Digit Nomor Induk Kependudukan (NIK)
+        in: formData
+        name: nik
+        required: true
+        type: string
+      - description: Jenis Anggota (perorangan / pemasok_usaha)
+        in: formData
+        name: member_type
+        required: true
+        type: string
+      - description: Alamat Lengkap sesuai KTP
+        in: formData
+        name: address
+        required: true
+        type: string
+      - description: Nama Bank Rekening Anggota
+        in: formData
+        name: bank_name
+        required: true
+        type: string
+      - description: Nomor Rekening Bank Anggota
+        in: formData
+        name: bank_account_number
+        required: true
+        type: string
+      - description: Nomor HP Referral (Opsional)
+        in: formData
+        name: referral_number
+        type: string
+      - description: File Foto KTP (.jpg/.jpeg/.png)
+        in: formData
+        name: photo_ktp_url
+        required: true
+        type: file
+      - description: File Foto Wajah / Selfie (.jpg/.jpeg/.png)
+        in: formData
+        name: photo_selfie_url
+        required: true
+        type: file
+      - description: File Bukti Transfer Pembayaran (.jpg/.jpeg/.png)
+        in: formData
+        name: payment_proof_url
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Register Success
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+        "400":
+          description: Bad Request (ValidationError / TokenError / RegistrationError)
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+        "500":
+          description: Internal Server Error (ProfileError / PaymentError)
+          schema:
+            $ref: '#/definitions/model.APIResponse'
+      summary: Register a new cooperative member
+      tags:
+      - Authentication
+swagger: "2.0"
