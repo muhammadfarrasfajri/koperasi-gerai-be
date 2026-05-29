@@ -10,11 +10,12 @@ import (
 func AttachCORS(r *gin.Engine) {
 	// List domain yang boleh akses API kamu
 	allowedOrigins := map[string]bool{
+		os.Getenv("CORS_GERAI"):      true,
+		os.Getenv("CORS_GERMIN"):      true,
+		os.Getenv("CORS_APP"):      true,
 		os.Getenv("CORS_LOCAL"):      true,
 		os.Getenv("CORS_OTHER"):      true,
-		"http://localhost:3000":      true,
-		"http://192.168.52.39:3000":  true,
-		"https://192.168.52.39:3000": true,
+		os.Getenv("CORS_OTHER1"):      true,
 	}
 
 	r.Use(func(c *gin.Context) {

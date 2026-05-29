@@ -32,12 +32,15 @@ type UserProfile struct {
 }
 
 type UserResponse struct {
-	ID            int         `json:"id"`
-	Email         string      `json:"email"`
-	Role          string      `json:"role"`
-	Status        string      `json:"status"`
-	TotalReferral int         `json:"total_referral"`
-	Profile       UserProfile `json:"profile"`
+	ID              int         `json:"id"`
+	Email           string      `json:"email"`
+	Role            string      `json:"role"`
+	Status          string      `json:"status"`
+	TotalReferral   int         `json:"total_referral"`
+	VerifiedAt      *string     `json:"verified_at"`
+	VerifiedBy      *int64      `json:"verified_by"`
+	RejectionReason *string     `json:"rejection_reason"`
+	Profile         UserProfile `json:"profile"`
 }
 
 type RegistrationPayment struct {
@@ -73,6 +76,20 @@ type RegisterMemberRequest struct {
 	PhotoKTPURL       string `form:"-"`
 	PhotoSelfieURL    string `form:"-"`
 	PaymentProofURL   string `form:"-"`
+}
+
+type UpdateRegistrationRequest struct {
+	FullName          string `form:"full_name" binding:"required"`
+	PhoneNumber       string `form:"phone_number" binding:"required"`
+	NIK               string `form:"nik" binding:"required,len=16"`
+	MemberType        string `form:"member_type" binding:"required"`
+	Address           string `form:"address" binding:"required"`
+	BankName          string `form:"bank_name" binding:"required"`
+	BankAccountNumber string `form:"bank_account_number" binding:"required"`
+	PhotoKTPURL       string `form:"-"`
+	PhotoSelfieURL    string `form:"-"`
+	PaymentProofURL   string `form:"-"`
+	City              string `form:"-"`
 }
 
 type LoginMemberRequest struct {

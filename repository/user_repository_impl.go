@@ -22,7 +22,7 @@ func (r *UserRepositoryImpl) FindUserById(id int) (*model.UserResponse, error) {
 	// COALESCE digunakan untuk memberikan nilai default (string kosong) apabila kolom profil bernilai NULL.
 	query := `
 		SELECT 
-			u.id, u.email, u.role, u.status,
+			u.id, u.email, u.role, u.status, u.rejection_reason,
 			COALESCE(p.full_name, '') AS full_name, 
 			COALESCE(p.phone_number, '') AS phone_number, 
 			COALESCE(p.nik, '') AS nik, 
@@ -40,10 +40,11 @@ func (r *UserRepositoryImpl) FindUserById(id int) (*model.UserResponse, error) {
 	user := &model.UserResponse{}
 
 	err := r.DB.QueryRow(query, id).Scan(
-		&user.ID,                        // 1
-		&user.Email,                     // 2
-		&user.Role,                      // 3
-		&user.Status,                    // 4
+		&user.ID,    // 1
+		&user.Email, // 2
+		&user.Role,  // 3
+		&user.Status,
+		&user.RejectionReason,           // 4
 		&user.Profile.FullName,          // 5
 		&user.Profile.PhoneNumber,       // 6
 		&user.Profile.NIK,               // 7
@@ -68,7 +69,7 @@ func (r *UserRepositoryImpl) FindUserByEmail(email string) (*model.UserResponse,
 	// COALESCE digunakan untuk memberikan nilai default (string kosong) apabila kolom profil bernilai NULL.
 	query := `
 		SELECT 
-			u.id, u.email, u.role, u.status,
+			u.id, u.email, u.role, u.status, u.rejection_reason,
 			COALESCE(p.full_name, '') AS full_name, 
 			COALESCE(p.phone_number, '') AS phone_number, 
 			COALESCE(p.nik, '') AS nik, 
@@ -86,10 +87,11 @@ func (r *UserRepositoryImpl) FindUserByEmail(email string) (*model.UserResponse,
 	user := &model.UserResponse{}
 
 	err := r.DB.QueryRow(query, email).Scan(
-		&user.ID,                        // 1
-		&user.Email,                     // 2
-		&user.Role,                      // 3
-		&user.Status,                    // 4
+		&user.ID,    // 1
+		&user.Email, // 2
+		&user.Role,  // 3
+		&user.Status,
+		&user.RejectionReason,           // 4
 		&user.Profile.FullName,          // 5
 		&user.Profile.PhoneNumber,       // 6
 		&user.Profile.NIK,               // 7
@@ -213,4 +215,57 @@ func (r *UserRepositoryImpl) GetUserDashboardDashboard(userID int) (*model.UserD
 	}
 
 	return dashboard, nil
+}
+
+func (r *UserRepositoryImpl) UpdateRegistrationData(userID int, req model.UpdateRegistrationRequest) error {
+	tx, err := r.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// 1. Reset Status di Tabel Users
+	queryUser := `
+		UPDATE users 
+		SET status = 'PENDING', rejection_reason = NULL, verified_at = NULL, verified_by = NULL 
+		WHERE id = ?`
+
+	if _, err = tx.Exec(queryUser, userID); err != nil {
+		return err
+	}
+
+	// 2. Update Data di Tabel User Profiles (Tanpa referral_number)
+	queryProfile := `
+		UPDATE user_profiles 
+		SET full_name = ?, phone_number = ?, nik = ?, member_type = ?, 
+		    address = ?, city = ?, bank_name = ?, bank_account_number = ?, 
+		    photo_ktp_url = ?, photo_selfie_url = ?
+		WHERE user_id = ?`
+
+	_, err = tx.Exec(queryProfile,
+		req.FullName, req.PhoneNumber, req.NIK, req.MemberType,
+		req.Address, req.City, req.BankName, req.BankAccountNumber,
+		req.PhotoKTPURL, req.PhotoSelfieURL, userID,
+	)
+	if err != nil {
+		return err
+	}
+
+	// 3. Update Bukti Bayar di Tabel Registration Payments
+	queryPayment := `
+		UPDATE registration_payments 
+		SET payment_proof_url = ? 
+		WHERE user_id = ?`
+
+	if _, err = tx.Exec(queryPayment, req.PaymentProofURL, userID); err != nil {
+		return err
+	}
+
+	// 4. Commit Transaksi
+	return tx.Commit()
 }

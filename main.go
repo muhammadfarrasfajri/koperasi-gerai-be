@@ -63,9 +63,6 @@ func main() {
 
 	// 8. Jalankan Server (FIX: Membaca port dari .env, fallback ke 8080 jika kosong)
 	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
 
 	log.Printf("Server running on port %s", port)
 	r.Run(":" + port)

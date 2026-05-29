@@ -6,4 +6,5 @@ type UserRepository interface {
 	FindUserById(id int) (*model.UserResponse, error)
 	FindUserByEmail(email string) (*model.UserResponse, error)
 	GetUserDashboardDashboard(userID int) (*model.UserDashboardResponse, error)
+	UpdateRegistrationData(userID int, req model.UpdateRegistrationRequest) error
 }

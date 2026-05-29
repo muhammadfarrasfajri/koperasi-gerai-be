@@ -93,6 +93,8 @@ func SetupRouter(r *gin.Engine, authController *controller.AuthController, userC
 
 	user := r.Group("/api/user/v1")
 	{
+		user.PATCH("/update-user", jwtManager.AuthMiddleware(), userController.UpdateRegistrationData)
+		user.GET("/me",jwtManager.AuthMiddleware(), userController.FindUserByEmail)
 		user.GET("/dashboard", jwtManager.AuthMiddleware(), userController.GetUserDashboardDashboard)
 	}
 

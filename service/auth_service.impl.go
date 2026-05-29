@@ -159,15 +159,7 @@ func (s *AuthServiceImpl) Login(idToken string) (map[string]interface{}, error) 
 		fmt.Println(err.Error())
 		return nil, errors.New("user not found, please register first")
 	}
-
-	if user.Status == "reject" {
-		return nil, errors.New("user rejected")
-	}
-
-	if user.Status == "pending" {
-		return nil, errors.New("user not active")
-	}
-
+	
 	// generate access token
 	accessToken, err := s.JWTManager.GenerateAccessToken(user.ID, user.Email, user.Role)
 	if err != nil {
@@ -200,10 +192,12 @@ func (s *AuthServiceImpl) Login(idToken string) (map[string]interface{}, error) 
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 		"user": map[string]interface{}{
-			"id":    user.ID,
-			"name":  user.Profile.FullName,
-			"email": user.Email,
-			"role":  user.Role,
+			"id":            user.ID,
+			"name":          user.Profile.FullName,
+			"email":         user.Email,
+			"role":          user.Role,
+			"status":        user.Status,
+			"reject_reason": user.RejectionReason,
 		},
 	}, nil
 }
