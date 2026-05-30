@@ -12,4 +12,5 @@ type AdminService interface {
 	GetReferralTree(ctx context.Context) ([]*model.ReferralNode, error)
 	GetAdminSummary(ctx context.Context) (model.AdminSummary, error)
 	GetUserDetails(ctx context.Context, userID int64) (model.UserDetail, error)
+	VerifyWithdrawal(adminID int, req model.VerifyWithdrawalRequest) error
 }

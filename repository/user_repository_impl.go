@@ -75,8 +75,7 @@ func (r *UserRepositoryImpl) FindUserById(id int, role string) (*model.UserRespo
 			COALESCE(p.photo_ktp_url, '') AS photo_ktp_url, 
 			COALESCE(p.photo_selfie_url, '') AS photo_selfie_url, 
 			COALESCE(p.bank_name, '') AS bank_name, 
-			COALESCE(p.bank_account_number, '') AS bank_account_number,
-			COALESCE((SELECT COUNT(*) FROM user_profiles WHERE referral_number = p.phone_number), 0) AS total_referral
+			COALESCE(p.bank_account_number, '') AS bank_account_number
 		FROM users u
 		LEFT JOIN user_profiles p ON u.id = p.user_id
 		WHERE u.id = ?`
@@ -98,7 +97,6 @@ func (r *UserRepositoryImpl) FindUserById(id int, role string) (*model.UserRespo
 		&user.Profile.PhotoSelfieURL,    // 12
 		&user.Profile.BankName,          // 13
 		&user.Profile.BankAccountNumber, // 14
-		&user.TotalReferral,             // 15
 	)
 
 	if err != nil {
@@ -110,7 +108,7 @@ func (r *UserRepositoryImpl) FindUserById(id int, role string) (*model.UserRespo
 
 // Tambahkan parameter `role string` di sini
 func (r *UserRepositoryImpl) FindUserByEmail(email string, role string) (*model.UserResponse, error) {
-	
+
 	// ==========================================
 	// 1. JIKA ROLE ADALAH ADMIN
 	// ==========================================
@@ -127,16 +125,16 @@ func (r *UserRepositoryImpl) FindUserByEmail(email string, role string) (*model.
 			Role     string
 			IsActive bool
 		}
-		
+
 		err := r.DB.QueryRow(queryAdmin, email).Scan(&admin.ID, &admin.Email, &admin.FullName, &admin.Role, &admin.IsActive)
 		if err != nil {
 			return nil, err // Akan error jika email admin tidak ditemukan
 		}
-		
+
 		// Cek Shadow Account di tabel users (untuk keperluan FK dan JWT)
 		var userID int
 		errUser := r.DB.QueryRow("SELECT id FROM users WHERE email = ? AND role = 'admin' LIMIT 1", email).Scan(&userID)
-		
+
 		if errUser == sql.ErrNoRows {
 			res, errInsert := r.DB.Exec("INSERT INTO users (email, role, status) VALUES (?, 'admin', 'active')", email)
 			if errInsert != nil {
@@ -157,7 +155,7 @@ func (r *UserRepositoryImpl) FindUserByEmail(email string, role string) (*model.
 		}
 
 		return &model.UserResponse{
-			ID:     userID, 
+			ID:     userID,
 			Email:  admin.Email,
 			Role:   admin.Role,
 			Status: status,
@@ -181,8 +179,7 @@ func (r *UserRepositoryImpl) FindUserByEmail(email string, role string) (*model.
 			COALESCE(p.photo_ktp_url, '') AS photo_ktp_url, 
 			COALESCE(p.photo_selfie_url, '') AS photo_selfie_url, 
 			COALESCE(p.bank_name, '') AS bank_name, 
-			COALESCE(p.bank_account_number, '') AS bank_account_number,
-			COALESCE((SELECT COUNT(*) FROM user_profiles WHERE referral_number = p.phone_number), 0) AS total_referral
+			COALESCE(p.bank_account_number, '') AS bank_account_number
 		FROM users u
 		LEFT JOIN user_profiles p ON u.id = p.user_id
 		WHERE u.email = ?`
@@ -204,7 +201,6 @@ func (r *UserRepositoryImpl) FindUserByEmail(email string, role string) (*model.
 		&user.Profile.PhotoSelfieURL,    // 12
 		&user.Profile.BankName,          // 13
 		&user.Profile.BankAccountNumber, // 14
-		&user.TotalReferral,             // 15
 	)
 
 	if err != nil {
@@ -226,8 +222,8 @@ func (r *UserRepositoryImpl) GetUserDashboardDashboard(userID int) (*model.UserD
 			p.full_name, p.phone_number,
 			COALESCE(w.referral_balance, 0) AS current_balance,
 			
-			-- Subquery 1: Menghitung total orang yang daftar pakai nomor dia
-			(SELECT COUNT(*) FROM user_profiles WHERE referral_number = p.phone_number) AS total_referred,
+			-- 🌟 UPDATE: Menghitung total referral berdasarkan referred_by_id
+			(SELECT COUNT(*) FROM user_profiles WHERE referred_by_id = u.id) AS total_referred,
 			
 			-- Subquery 2: Menghitung total uang masuk yang berstatus success
 			(SELECT COALESCE(SUM(amount), 0) FROM referral_rewards WHERE referrer_user_id = u.id AND status = 'success') AS total_earned
@@ -261,10 +257,11 @@ func (r *UserRepositoryImpl) GetUserDashboardDashboard(userID int) (*model.UserD
 		SELECT u.id, p.full_name, p.phone_number, u.created_at
 		FROM users u
 		INNER JOIN user_profiles p ON u.id = p.user_id
-		WHERE p.referral_number = ?
+		WHERE p.referred_by_id = ? -- 🌟 UPDATE: Mencari berdasarkan ID pengajak
 		ORDER BY u.created_at DESC`
 
-	rowsList, err := r.DB.Query(queryList, dashboard.PhoneNumber)
+	// 🌟 UPDATE: Parameternya sekarang menggunakan userID, bukan dashboard.PhoneNumber
+	rowsList, err := r.DB.Query(queryList, userID)
 	if err != nil {
 		return nil, err
 	}

@@ -42,5 +42,6 @@ func SetupRouter(r *gin.Engine, authController *controller.AuthController, userC
 		admin.GET("/referrals", adminController.GetReferralTree)
 		admin.GET("/dashboard/summary", adminController.GetDashboardSummary)
 		admin.GET("/users/:id", adminController.GetUserDetails)
+		admin.POST("/referral/verify-withdrawal", adminController.VerifyWithdrawal)
 	}
 }

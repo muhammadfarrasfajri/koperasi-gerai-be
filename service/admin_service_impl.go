@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/muhammadfarrasfajri/koperasi-gerai-be/model"
 	"github.com/muhammadfarrasfajri/koperasi-gerai-be/repository"
@@ -131,4 +132,28 @@ func BuildReferralTree(profiles []model.UserProfile) []*model.ReferralNode {
 	}
 
 	return roots
+}
+
+func (s *AdminServiceImpl) VerifyWithdrawal(adminID int, req model.VerifyWithdrawalRequest) error {
+	// A. Standarisasi input menjadi huruf kecil (lowercase)
+	// Ini mencegah bug jika frontend mengirim "REJECT", "Reject", atau "approve"
+	req.Status = strings.ToLower(strings.TrimSpace(req.Status))
+
+	// B. Validasi aksi yang diperbolehkan
+	if req.Status != "approve" && req.Status != "reject" {
+		return errors.New("status tidak valid: hanya menerima 'approve' atau 'reject'")
+	}
+
+	// C. Aturan Bisnis: Wajib isi alasan jika ditolak
+	if req.Status == "reject" {
+		if req.RejectReason == nil || strings.TrimSpace(*req.RejectReason) == "" {
+			return errors.New("alasan penolakan (reject_reason) wajib diisi jika menolak pencairan")
+		}
+	} else if req.Status == "approve" {
+		// Bersihkan data alasan jika disetujui, agar tabel database tetap bersih (NULL)
+		req.RejectReason = nil
+	}
+
+	// D. Oper data yang sudah tervalidasi dan bersih ke layer Repository
+	return s.AdminRepo.VerifyWithdrawal(adminID, req)
 }

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/muhammadfarrasfajri/koperasi-gerai-be/config"
 	"github.com/muhammadfarrasfajri/koperasi-gerai-be/model"
@@ -105,13 +106,13 @@ func (r *AdminRepositoryImpl) VerifyUser(ctx context.Context, userID int64, paym
 
 func (r *AdminRepositoryImpl) GetAllProfiles(ctx context.Context) ([]model.UserProfile, error) {
 	var profiles []model.UserProfile
-	
+
 	err := r.GormDB.WithContext(ctx).Table("user_profiles").
 		Select(`id, user_id, full_name, phone_number, nik, member_type, address, city, 
 				photo_ktp_url, photo_selfie_url, bank_name, bank_account_number, 
 				referral_number`).
 		Scan(&profiles).Error
-		
+
 	if err != nil {
 		return nil, err
 	}
@@ -167,4 +168,52 @@ func (r *AdminRepositoryImpl) GetUserByID(ctx context.Context, userID int64) (mo
 	}
 
 	return user, nil
+}
+
+// adminID didapatkan dari token JWT di Controller (ctx.GetInt("user_id"))
+func (r *AdminRepositoryImpl) VerifyWithdrawal(adminID int, req model.VerifyWithdrawalRequest) error {
+	// Membuka transaksi database ala GORM
+	return r.GormDB.Transaction(func(tx *gorm.DB) error {
+
+		// 1. Kunci data penarikan (Pessimistic Locking) dan cek status saat ini
+		var withdrawal struct {
+			UserID int
+			Amount int
+			Status string
+		}
+
+		// Gunakan tx.Raw().Scan() untuk raw query SELECT di GORM
+		err := tx.Raw("SELECT user_id, amount, status FROM referral_withdrawals WHERE id = ? FOR UPDATE", req.ID).Scan(&withdrawal).Error
+		if err != nil {
+			return errors.New("gagal menemukan data penarikan")
+		}
+
+		if withdrawal.Status != "pending" {
+			return errors.New("penarikan ini sudah diproses sebelumnya")
+		}
+
+		// 2. Query UPDATE Status Penarikan
+		queryUpdate := `
+			UPDATE referral_withdrawals 
+			SET status = ?, reject_reason = ?, verified_at = NOW(), verified_by = ? 
+			WHERE id = ?`
+
+		// FIX GORM: Tangkap error dengan .Error di akhir fungsi
+		if err := tx.Exec(queryUpdate, req.Status, req.RejectReason, adminID, req.ID).Error; err != nil {
+			return err
+		}
+
+		// 3. Logika Refund: Kembalikan saldo jika penarikan ditolak
+		if req.Status == "reject" {
+			// Sesuaikan 'user_wallets' dengan tabel tempat kamu menyimpan saldo
+			queryRefund := `UPDATE user_wallets SET referral_balance = referral_balance + ? WHERE user_id = ?`
+			if err := tx.Exec(queryRefund, withdrawal.Amount, withdrawal.UserID).Error; err != nil {
+				return errors.New("gagal mengembalikan saldo referral: " + err.Error())
+			}
+		}
+
+		// Jika return nil, GORM akan otomatis melakukan tx.Commit()
+		// Jika return error, GORM akan otomatis melakukan tx.Rollback()
+		return nil
+	})
 }

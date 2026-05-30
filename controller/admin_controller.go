@@ -3,8 +3,10 @@ package controller
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/muhammadfarrasfajri/koperasi-gerai-be/model"
 	"github.com/muhammadfarrasfajri/koperasi-gerai-be/service"
 )
 
@@ -202,5 +204,53 @@ func (ctrl *AdminController) GetUserDetails(c *gin.Context) {
 		Status:  http.StatusOK,
 		Message: "User details retrieved successfully",
 		Data:    user,
+	})
+}
+
+func (c *AdminController) VerifyWithdrawal(ctx *gin.Context) {
+	// A. Ambil ID Admin dari JWT Middleware
+	adminID := ctx.GetInt("user_id")
+	if adminID == 0 {
+		ctx.JSON(http.StatusUnauthorized, WebResponse{
+			Status:  http.StatusUnauthorized,
+			Message: "Akses ditolak: Token admin tidak valid atau tidak ditemukan",
+			Data:    nil,
+		})
+		return
+	}
+
+	// B. Tangkap data JSON dari Frontend
+	var req model.VerifyWithdrawalRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, WebResponse{
+			Status:  http.StatusBadRequest,
+			Message: "Format data tidak valid: pastikan semua kolom wajib diisi",
+			Data:    nil,
+		})
+		return
+	}
+
+	// C. Oper ke layer Service
+	err := c.AdminService.VerifyWithdrawal(adminID, req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, WebResponse{
+			Status:  http.StatusBadRequest,
+			Message: err.Error(),
+			Data:    nil,
+		})
+		return
+	}
+
+	// D. Siapkan pesan sukses dinamis
+	pesanSukses := "Pencairan referral berhasil disetujui, dana bisa segera ditransfer"
+	if strings.ToLower(req.Status) == "reject" {
+		pesanSukses = "Pencairan berhasil ditolak. Saldo referral telah dikembalikan ke pengguna"
+	}
+
+	// E. Kirim respons sukses dengan WebResponse
+	ctx.JSON(http.StatusOK, WebResponse{
+		Status:  http.StatusOK,
+		Message: pesanSukses,
+		Data:    nil, // Bisa diisi nil karena tidak ada data spesifik yang perlu dikembalikan setelah update
 	})
 }

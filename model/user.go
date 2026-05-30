@@ -122,3 +122,9 @@ type UserDashboardResponse struct {
 	ReferredUsersList     []ReferredUser      `json:"referred_users_list"`  // Array list nama-nama orangnya
 	WithdrawalHistoryList []WithdrawalHistory `json:"withdrawal_history_list"`
 }
+
+type VerifyWithdrawalRequest struct {
+	ID           int     `json:"id" binding:"required"`
+	Status       string  `json:"status" binding:"required"`
+	RejectReason *string `json:"reject_reason"`
+}
