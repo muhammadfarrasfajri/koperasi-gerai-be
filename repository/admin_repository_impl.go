@@ -58,7 +58,8 @@ func (r *AdminRepositoryImpl) GetUsers(ctx context.Context, statusFilter string,
 			p.full_name, 
 			p.phone_number as whatsapp_number, 
 			p.nik, p.member_type, p.address, COALESCE(p.city, '') as city,
-			p.photo_ktp_url, p.photo_selfie_url, p.bank_name, p.bank_account_number, p.referral_number,
+			p.photo_ktp_url, p.photo_selfie_url, p.bank_name, p.bank_account_number, 
+			p.referred_by_id, -- 🌟 UPDATE: Menggunakan kolom baru
 			COALESCE(pay.amount, 0) as payment_amount, 
 			COALESCE(pay.payment_proof_url, '') as payment_proof_url, 
 			COALESCE(u.rejection_reason, '') as rejection_reason`).
@@ -110,7 +111,7 @@ func (r *AdminRepositoryImpl) GetAllProfiles(ctx context.Context) ([]model.UserP
 	err := r.GormDB.WithContext(ctx).Table("user_profiles").
 		Select(`id, user_id, full_name, phone_number, nik, member_type, address, city, 
 				photo_ktp_url, photo_selfie_url, bank_name, bank_account_number, 
-				referral_number`).
+				referred_by_id`). // 🌟 UPDATE: Ganti referral_number menjadi referred_by_id
 		Scan(&profiles).Error
 
 	if err != nil {
@@ -154,7 +155,8 @@ func (r *AdminRepositoryImpl) GetUserByID(ctx context.Context, userID int64) (mo
 				p.full_name, 
 				p.phone_number as whatsapp_number, 
 				p.nik, p.member_type, p.address, COALESCE(p.city, '') as city,
-				p.photo_ktp_url, p.photo_selfie_url, p.bank_name, p.bank_account_number, p.referral_number,
+				p.photo_ktp_url, p.photo_selfie_url, p.bank_name, p.bank_account_number, 
+				p.referred_by_id, -- 🌟 UPDATE: Ganti referral_number menjadi referred_by_id
 				COALESCE(pay.amount, 0) as payment_amount, 
 				COALESCE(pay.payment_proof_url, '') as payment_proof_url, 
 				COALESCE(u.rejection_reason, '') as rejection_reason`).
@@ -163,6 +165,7 @@ func (r *AdminRepositoryImpl) GetUserByID(ctx context.Context, userID int64) (mo
 	if err != nil {
 		return user, err
 	}
+
 	if user.UserID == 0 {
 		return user, gorm.ErrRecordNotFound
 	}

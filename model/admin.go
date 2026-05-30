@@ -23,6 +23,7 @@ type UserDetail struct {
 	PaymentAmount     float64   `json:"payment_amount"`
 	PaymentProofURL   string    `json:"payment_proof_url"`
 	RejectionReason   string    `json:"rejection_reason"`
+	ReferredByID      *int64    `json:"referred_by_id"`
 }
 
 // ReferralNode merepresentasikan satu simpul dalam pohon referral
@@ -44,6 +45,6 @@ type PaginationMetadata struct {
 
 // AdminSummary menyimpan ringkasan data statistik untuk Dashboard Admin
 type AdminSummary struct {
-	TotalUsers              int64 `json:"total_users"`
+	TotalUsers               int64 `json:"total_users"`
 	TotalPendingVerification int64 `json:"total_pending_verifications"`
 }
